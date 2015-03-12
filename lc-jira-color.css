@@ -1,0 +1,205 @@
+.intu-label {
+    position: absolute;
+    font-size:10px;
+    line-height: 11px;
+    padding: 0 0px;
+    border: 1px soild #aaaaaa;
+}
+
+.ghx-issue-compact .intu-label-top-right, .ghx-issue-compact .intu-label-bottom-right {
+    right:67px;
+}
+
+.intu-label-top-right {
+    top:0px;
+    right:0px;
+    background: #fffe6a;
+}
+
+.intu-label-bottom-left {
+    bottom:0px;
+    left:5px;
+    background-color: #59ff5b;
+}
+
+.intu-label-bottom-top-left {
+    bottom:10px;
+    left:5px;
+    background-color: #2ae6ff;
+}
+
+.intu-label-bottom-right {
+    bottom:0px;
+    right:0px;
+    color:#FF6666;
+}
+
+.intu-label-top-left {
+    top:0px;
+    left:5px;
+    background-color: #ff65f0;
+}
+
+#intu-side-menu > #componentFilter, #intu-side-menu > #sortLabel { display: none; }
+
+#intu-side-menu {
+    padding: 7px 4px;
+    border: 1px solid #333;
+    position: absolute;
+    top: 265px;
+    right: 10px;
+    background-color: #FFD738;
+    z-index: 1;
+    font-size: 13px;
+    text-align: center;
+}
+
+#intu-side-menu > a {
+    display: block;
+    margin: 5px 0;
+}
+
+#intu-menu {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 1;
+}
+
+#intu-menu-load, #intu-menu-error {
+    font-size: 15px;
+    background-color: #FFFE6A;
+}
+
+#intu-menu div {
+    color: #5D5D5D;
+}
+
+#intu-menu-error {
+    color: red;
+}
+
+#intu-status, #intu-help, #intu-filter-users, #intu-mention, #intu-filter-components {
+    display: none;
+    position: absolute;
+    width: 500px;
+    top: 0px;
+    right: 33px;
+    padding: 10px;
+    border: 1px solid black;
+    background-color: #fffdd9;
+    border-radius:3px;
+    text-align: left;
+}
+
+#num-of-issues { color: #5ba0ff; }
+#num-of-points { color: #eda400; }
+
+#intu-menu-toggle { font-weight: bold; }
+
+.intu-filter-user, .intu-filter-component { padding: 0 5px; }
+
+.intu-filter-new-user { color: rgb(239, 4, 255) !important; }
+
+.intu-container {
+    background-color: #fff;
+    padding: 5px;
+    color: #333;
+    margin: 3px;
+    border: 1px solid #333
+}
+
+.intu-watchers {
+    font-size: 10px;
+    background-color: #fffca2;
+}
+
+#intu-mention {
+    display: none;
+}
+
+
+#pluginMentionCount {
+    color: red !important;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+#intu-mention p { margin-top: 0px; }
+
+.open-icon {
+    margin-left: 5px;
+    display: none;
+}
+
+.ghx-issue-compact .intu-watchers { margin-left: 10px; }
+
+.tooltip2 {
+    display:none;
+    position:absolute;
+    border:1px solid #333;
+    background-color:#161616;
+    border-radius:3px;
+    padding:10px;
+    color:#fff;
+    font-size:12px;
+    right: 33px;
+}
+
+.columnStatus {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    font-size: 11px;
+    color: #528592;
+}
+
+.columnStatus span {
+    margin-right: 7px;
+}
+
+/*http://time2hack.com/2013/03/jquery-tutorial-build-hovercards-for-your-website.html*/
+.hovercard {
+    font-size: 12px;
+    display: none;
+    position: absolute;
+    width:300px;
+    padding: 5px;
+    /*height: 150px;*/
+    border:1px solid #ed7d00;
+    border-radius: 3px;
+    background-color: #fffdd9;
+    -webkit-box-shadow:  rgba(0, 0, 0, 0.4) 0px 3px 4px;
+    -moz-box-shadow:  rgba(0, 0, 0, 0.4) 0px 3px 4px;
+    box-shadow:  rgba(0, 0, 0, 0.4) 0px 3px 4px;
+    /*background-color:rgba(255, 255, 186, 0.7);*/
+    z-index: 1000;
+    border-radius:3px;
+}
+.hovercard h3{
+    color: #ed7d00;
+    padding: 10px 0 5px 0;
+    margin: 0 0 0 0;
+    font-size: 13px;
+    font-family: Verdana, Georgia;
+    border-bottom: 1px dashed #ccc;
+}
+.hovercard a{
+    text-decoration: none;
+    cursor: pointer;
+    border-bottom: 1px dashed #eee;
+}
+.hovercard p{
+    padding:2px 0px;
+    margin: 0 0 0 0;
+}
+
+.hovercard-desc {
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.hovercard-comment {
+    max-height: 200px;
+    overflow: hidden;
+}

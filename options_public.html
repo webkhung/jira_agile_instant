@@ -1,0 +1,32 @@
+<html>
+<head>
+    <title>JIRA Plugin Setup</title>
+</head>
+<body>
+<h2>Configure Hover</h2>
+<p>Select the fields you want to display on the hover:</p>
+<input type='checkbox' name="hoverDescription" id="hoverDescription"> Description<br>
+<input type='checkbox' name="lastComment" id="lastComment"> Last Comment<br>
+<input type='checkbox' name="relatedCards" id="relatedCards"> Related Cards (sub/parent, blocking/blocked by)<br>
+<input type='checkbox' name="fixVersion" id="fixVersion"> fixVersion<br>
+<br>
+<button id='saveButton'>Save</button>
+<span id='savedMsg' style='color:blue;display:none'> Option Saved</span>
+<br>
+
+<h2>Color and Label</h2>
+<p>
+Any JIRA labels started with underscore "_" are displayed on the top right corner of the card. The card is colored based on the label.
+</p>
+<br>
+<h2>Sub tasks, blocking / blocked tasks</h2>
+<p>Any sub tasks and blocking/blocked by tasks are displayed on the top left corner of the card.</p>
+<br>
+<script type="text/javascript" src="options.js"></script>
+
+<hr>
+
+Please submit bugs, feature requests, feedback to <u>kelvinhung8@gmail.com</u>.
+
+</body>
+</html>
