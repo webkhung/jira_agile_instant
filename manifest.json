@@ -15,7 +15,7 @@
 
 
     "name": "JIRA Agile Instant",
-    "version": "1.0.3",
+    "version": "2.0.0",
     "options_page": "options_public.html",
     "content_scripts": [
         {
@@ -30,6 +30,8 @@
       "images/web.png",
       "images/web2.png",
       "images/assignee.png",
+      "images/arrow_down.png",
+      "images/arrow_up.png",
       "images/story_points.png",
       "images/priority.png",
       "images/label.png",
@@ -38,13 +40,17 @@
       "images/open.png",
       "images/max.png",
       "images/status.png",
-      "images/info.png",
+      "images/priority.png",
+      "images/priority2.png",
+      "images/fixversion.png",
+      "images/notes.png",
       "images/sort.png",
       "images/filter.png",
       "images/me.png",
       "images/watching.png",
       "images/users.png",
       "images/component.png",
+      "images/menubar.png",
       "script.js"
   ],
   "manifest_version": 2

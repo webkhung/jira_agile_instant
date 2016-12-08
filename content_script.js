@@ -1,48 +1,61 @@
 var hostname = "https://" + window.location.hostname;
-var hoverDescription, showLastComment, relatedCards, fixVersion;
+var documentUrl = document.URL.toString()
+var baseUrl = documentUrl.substring(0, documentUrl.indexOf('/secure/'));
+var hoverDescription, showLastComment, relatedCards, fixVersion, ck1, ck2, ck3, ck4, ck5, ck6, ck7, ck8, ck9, ck10;
 var statusCounts = {};
 var statusStoryPoints = {};
-var workFields = "&maxResults=1000&fields=key,created,updated,status,summary,description,parent,labels,subtasks,assignee,issuelinks,fixVersions,comment,components," + storyPointsField + extraFields;
-var planFields = "&maxResults=1000&fields=key,created,updated,status,summary,description,parent,labels,subtasks,assignee,issuelinks,fixVersions,comment,components" + planExtraFields;
+var workFields = "&maxResults=1000&fields=key,priority,created,updated,status,summary,description,parent,labels,subtasks,assignee,issuelinks,fixVersions,comment,components,issuetype," + storyPointsField + extraFields;
+var planFields = "&maxResults=1000&fields=key,priority,created,updated,status,summary,description,parent,labels,subtasks,assignee,issuelinks,fixVersions,comment,components,issuetype," + planExtraFields;
 var planIssueQuery = " and issuetype in standardIssueTypes() and ((sprint is empty and resolutiondate is empty) or sprint in openSprints() or sprint in futureSprints())"
 var workIssueQuery = " and (sprint in openSprints())";
+var kanbanIssueQuery = "";
 var jiraGithub = new JiraGithub();
 var localStorageSet = false;
 var workColumnStatuses = {}
 var setTimeoutLoadPlugin;
+var hasGithub;
+var rapidViewID;
+var bHasStarted = false;
 
-if(window.location.href.indexOf('RapidBoard') > 0) {
-    setupDocument();
+chrome.storage.sync.get('enabled', function(value) {
+    if(value.enabled || value.enabled === undefined) {
+        startPlugin();
+    }
+});
 
-    chrome.runtime.sendMessage({method: "getLocalStorage", key: "settings"}, function(response) {
-        localStorageSet = true;
-        jiraGithub.initVariables(response);
-        watchersNames = response.watchersNames;
-        hoverDescription = response.hoverDescription == 'true';
-        showLastComment = response.lastComment == 'true';
-        relatedCards = response.relatedCards == 'true';
-        fixVersion = response.fixVersion == 'true';
-    });
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+    for (key in changes) {
+        var storageChange = changes[key];
+        if(key == 'enabled' && storageChange.newValue == true){
+            startPlugin()
+        }
+    }
+});
 
-    // go will be an event sent from the document when call window.go()
-    document.addEventListener("go", function(data) {
-        updateJiraBoard();
-    });
+function startPlugin(){
+    if(bHasStarted){
+        return;
+    }
+    bHasStarted = true;
 
-    document.addEventListener("loadPlugin", function(data) {
-        loadPlugin();
-    });
-
-    setTimeoutLoadPlugin = setTimeout(function(){
-        console.log('--- setTimeout');
-        loadPlugin();
-    }, 4000);
+    if(window.location.href.indexOf('RapidBoard') > 0) {
+        setupRapidBoard();
+    }
+    //else if(window.location.href.indexOf('browse') > 0){
+    //    setupIssuePage();
+    //}
+    else {
+        jiraGithub.setIntervalChangeGithubPage();
+    }
 }
-else {
-    jiraGithub.setIntervalChangeGithubPage();
+
+function setupIssuePage(){
+    appendScriptsToPage();
+    getLocalStorage();
+    addPluginMenu();
 }
 
-function setupDocument(){
+function setupRapidBoard(){
     // Inject Js to document
     var script = document.createElement('script');
     script.appendChild(document.createTextNode('('+ setupClientLoadPluginEvent +')();'));
@@ -61,15 +74,6 @@ function setupDocument(){
     }
     head.appendChild(style);
 
-    // Inject script.js to the document
-    var s = document.createElement('script');
-    s.src = chrome.extension.getURL('script.js');
-    (document.head||document.documentElement).appendChild(s);
-    s.onload = function() {
-        s.parentNode.removeChild(s);
-    };
-
-
     // Hide buttons / filters on the board are clicked.
     $('#work-toggle, #plan-toggle').on('click', function(){
         $('#intu-status-issues').html('');
@@ -77,10 +81,25 @@ function setupDocument(){
         $('#intu-menu-load').show();
     });
 
-    $('body').append("<div class='hovercard'></div>");
-    $('body').append("<div id='intu-menu'></div>");
+    appendScriptsToPage();
+
+    getLocalStorage();
+
+    // go will be an event sent from the document when call window.go()
+    document.addEventListener("go", function(data) {
+        updateJiraBoard();
+    });
+
+    document.addEventListener("loadPlugin", function(data) {
+        loadPlugin();
+    });
+
+    setTimeoutLoadPlugin = setTimeout(function(){
+        loadPlugin();
+    }, 4000);
 }
 
+// Called whenever Jira refreshes the page or when the board is ready initially
 function loadPlugin(){
     clearTimeout(setTimeoutLoadPlugin);
 
@@ -118,21 +137,23 @@ function setupClientLoadPluginEvent() {
     };
 
     setTimeout(function(){
-        $('#ghx-pool').on('click', '.issueLink', function(e){
-            var issueKey = $(this).parents('.ghx-issue').data('issue-key');
-            window.open("https://" + window.location.hostname + '/browse/' + issueKey);
-            e.stopPropagation();
-        });
+        (function($) {
+            $('#ghx-pool').on('click', '.issueLink', function(e){
+                var issueKey = $(this).parents('.ghx-issue').data('issue-key');
+                window.open("https://" + window.location.hostname + '/browse/' + issueKey);
+                e.stopPropagation();
+            });
 
-        $('#work-toggle, #plan-toggle').on('click', function(){
-            hidingHeight = 0;
-            $('#announcement-banner, #header, #ghx-operations').show();
-        });
+            $('#work-toggle, #plan-toggle').on('click', function(){
+                hidingHeight = 0;
+                $('#announcement-banner, #header, #ghx-operations').show();
+            });
 
-        $(window).resize(function() {
-            setTimeout(function(){pluginAdjustSpace()}, 1000);
-        });
-    }, 5000);
+            $(window).resize(function() {
+                setTimeout(function(){pluginAdjustSpace()}, 1000);
+            });
+        })(jQuery);
+    }, 4000);
 
     console.yo = console.log;
     console.log = function(str){
@@ -149,12 +170,15 @@ function processIssues(data){
     console.log('--- processIssues');
     updateLoadStatus('Received ' + data.issues.length + ' issues details');
 
-    $('.ghx-summary').removeAttr('title'); // Dont like their <a> title so remove it.
+    $('.ghx-summary, .js-key-link').removeAttr('title'); // Dont like their <a> title so remove it.
     $('.columnStatus').remove();
 
     for(var key in workColumnStatuses) {
         workColumnStatuses[key].count = 0;
     }
+
+    addIssueTypeFilter('Hide all sub-tasks');
+    addUserFilter('Unassigned');
 
     console.log('--- processing data size ' + data.issues.length);
     data.issues.forEach(function(issue) {
@@ -162,12 +186,13 @@ function processIssues(data){
         if (elIssue.length == 0) return; // in case the card doesn't exist on the UI
         var fields = issue.fields;
 
-        workColumnStatuses[parseInt(fields.status.id)].increment();
+        if(workColumnStatuses[parseInt(fields.status.id)]) {
+            workColumnStatuses[parseInt(fields.status.id)].increment();
+        }
 
         resetIssue(elIssue);
         var issueIsPR = jiraGithub.addPullRequestLabel(issue.key, elIssue);
         addHovercardTo(elIssue, fields, issue.key);
-        addUserFilter('Unassigned');
         addLabelTo(elIssue, createLabelFrom(fields.labels, issueIsPR, elIssue), 'top-right');
         addAttributesTo(elIssue, fields, issueIsPR);
         addOpenIssueLinkTo(elIssue, issue.key);
@@ -191,19 +216,24 @@ function processIssues(data){
 function updateJiraBoard() {
     console.log('updateJiraBoard');
 
+    var sprintID = param('sprint');
+    rapidViewID = param('rapidView');
+
     addPluginMenu();
     resetIssueStatus();
 
-    var sprintID = param('sprint');
-    var rapidViewID = param('rapidView');
+
+    chrome.runtime.sendMessage({method: "updateJiraBoard", id: sprintID + '_' + rapidViewID}, function(response) {});
+
 
     if (sprintID.length == 0 && rapidViewID.length == 0) {
         updateLoadStatus('Not a RapidBoard Url');
     }
     else {
         workColumnStatuses = {};
+        // Disable caching for now.
         if(localStorage["JIS" + rapidViewID] === undefined) {
-            $.get(hostname + "/rest/greenhopper/1.0/rapidviewconfig/editmodel.json?rapidViewId=" + rapidViewID, function( data ) {
+            $.get(baseUrl + "/rest/greenhopper/1.0/rapidviewconfig/editmodel.json?rapidViewId=" + rapidViewID, function( data ) {
                 data.rapidListConfig.mappedColumns.forEach(function(mappedColumn) {
                     mappedColumn.mappedStatuses.forEach(function(mappedStatus){
                         var workStatus = new WorkStatus(mappedStatus.name, mappedColumn.id);
@@ -214,7 +244,7 @@ function updateJiraBoard() {
                 localStorage["JIS" + data.id] = data.filterConfig.id;
                 localStorage["JIS_ColumnStatuses" + rapidViewID] = workColumnStatusesToString();
 
-                callJira(sprintID, data.filterConfig.id);
+                callJira(sprintID, data.filterConfig.id, !data.isSprintSupportEnabled);
             });
         }
         else {
@@ -225,13 +255,13 @@ function updateJiraBoard() {
     }
 }
 
-function callJira(sprintID, filterId){
+function callJira(sprintID, filterId, isKanban){
     if (sprintID !== undefined && sprintID != '') {
-        makeApiRequest(hostname + "/rest/api/latest/search?jql=sprint%3D" + sprintID + searchFields());
+        makeApiRequest(baseUrl + "/rest/api/latest/search?jql=sprint%3D" + sprintID + searchFields());
     }
     else {
-        var query = (isPlanView()? planIssueQuery : workIssueQuery);
-        makeApiRequest(hostname + "/rest/api/latest/search?jql=filter=" + filterId + query + searchFields());
+        var query = (isPlanView()? planIssueQuery : (isKanban ? kanbanIssueQuery : workIssueQuery));
+        makeApiRequest(baseUrl + "/rest/api/latest/search?jql=filter=" + filterId + query + searchFields());
     }
 }
 
@@ -273,15 +303,21 @@ function addPluginMenu(){
     $('#intu-menu').html("<span id='intu-menu-load'></span><span id='intu-menu-error'></span>");
     $('#intu-side-menu').remove();
     $('body').append("<div id='intu-side-menu'></div>");
-    $('#intu-side-menu').append("<a href='javascript:pluginMaxSpace();' title='Maximize Space' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/max.png') + "></a>");
+
+    $('#intu-side-menu').append("<a href='javascript:pluginToggleMenu();' id='toggleMenu' title='Toggle Menu' class='toggleMenu'><img id='imgToggle' width=16 height=16 src=" + chrome.extension.getURL('images/arrow_down.png') + "></a>");
+    $('#intu-side-menu').append("<a href='javascript:pluginMaxSpace();' id='maxSpace' title='Maximize Space' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/max.png') + "></a>");
+
+    if(hasGithub && rapidViewID == 13709){
+        $('#intu-side-menu').append("<a href='javascript:pluginShowGithubDashboard();' id='githubDashboard' title='Github Dashboard' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/github.png') + "></a>");
+    }
 
     if(extraFields.indexOf('customfield_11712')>=0)
-        $('#intu-side-menu').append("<a href='javascript:pluginCardsWatching(\"" + myName() + "\");' title='Show cards I am watching' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/watching.png') + "></a>");
+        $('#intu-side-menu').append("<a id='cardsWatching' href='javascript:pluginCardsWatching(\"" + myName() + "\");' title='Show cards I am watching' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/watching.png') + "></a>");
 
     var sorts = {
         label:        { id: 'sortLabel', image: "images/label.png", title: "Sort by labels", attr: "_label", order: "desc", valueType: "string" },
         assignee:     { id: 'sortAssignee', image: "images/assignee.png", title: "Sort by assignees", attr: "_displayName", order: "asc", valueType: "string" }
-//        story_points: { image: "images/story_points.png", title: "Sort by story points", attr: "_storyPoint", order: "desc", valueType: "integer" },
+        // story_points: { image: "images/story_points.png", title: "Sort by story points", attr: "_storyPoint", order: "desc", valueType: "integer" },
     }
     for(var sortKey in sorts) {
         sort = sorts[sortKey];
@@ -289,29 +325,48 @@ function addPluginMenu(){
         var anchor = $('<a />').attr({ id: sort['id'], title: sort['title'], class: 'sort-icon masterTooltip', href: "javascript:window.sortAllJiraIssues('" + sort['attr'] + "', '" + sort['order'] + "', '" + sort['valueType'] + "')" });
         $('#intu-side-menu').append(anchor.append(img));
     };
-    $('#intu-side-menu').append("\
-        <a href='javascript:pluginShowComponentFilter();' id='componentFilter' title='Component Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/component.png') + "></a>  \
-        <a href='javascript:pluginShowUserFilter();' id='userFilter' title='User Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/users.png') + "></a>  \
-        <a href='javascript:pluginToggleStatus();' title='Issue Status' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/status.png') + "></a>  \
-        <a id='pluginMentionCount' href='javascript:pluginMention();' title='You are mentioned' class='masterTooltip'></a>\
-        "
-    );
-//    <a href='javascript:pluginHelp();' title='Options' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/info.png') + "></a>  \
+    $('#intu-side-menu')
+        .append("\
+            <a href='javascript:pluginShowComponentFilter();' id='componentFilter' title='Component Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/component.png') + "></a>  \
+            <a href='javascript:pluginShowUserFilter();' id='userFilter' title='User Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/users.png') + "></a>  \
+            <a href='javascript:pluginShowPriorityFilter();' id='priorityFilter' title='Priority Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/priority2.png') + "></a>  \
+            <a href='javascript:pluginShowFixVersionFilter();' id='fixversionFilter' title='FixVersion Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/fixversion.png') + "></a>  \
+            <a href='javascript:pluginShowIssuetypeFilter();' id='issuetypeFilter' title='Issuetype Filters' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/story_points.png') + "></a>  \
+            <a href='javascript:pluginToggleStatus();' id='issueStatus' title='Issue Status' class='masterTooltip'><img width=16 height=16 src=" + chrome.extension.getURL('images/status.png') + "></a>  \
+            <a id='pluginMentionCount' href='javascript:pluginMention();' title='You are mentioned' class='masterTooltip'></a>")
+        .append("<div id='intu-mention'></div>")
+        .append("\
+            <div id='intu-filter-components' class='intu-container'> \
+                <a href='javascript:pluginClose();' class='close-button'>Close</a>\
+                <strong>Filter By Component:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a> </div> \
+            <div id='intu-filter-users' class='intu-container'> \
+                <a href='javascript:pluginClose();' class='close-button'>Close</a>\
+                <strong>Filter By Assignee:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a></div> \
+            <div id='intu-filter-priorities' class='intu-container'> \
+                <a href='javascript:pluginClose();' class='close-button'>Close</a>\
+                <strong>Filter By Priorities:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a></div> \
+            <div id='intu-filter-fixversion' class='intu-container'> \
+                <a href='javascript:pluginClose();' class='close-button'>Close</a>\
+                <strong>Filter By Fix Versions:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a></div> \
+            <div id='intu-filter-issuetype' class='intu-container'>  \
+                <a href='javascript:pluginClose();' class='close-button'>Close</a>\
+                <strong>Filter By Issue Types:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a></div> \
+            <div id='intu-status'>  \
+                <a href='javascript:pluginClose();' class='close-button'>Close</a>\
+                <div id='num-of-issues'><strong># of Issues : </strong><span id='intu-status-issues'></span></div>  \
+                <div id='num-of-points'><strong># of Story Pts : </strong><span id='intu-status-points'></span></div></div>");
 
-    $('#intu-side-menu').append("<div id='intu-mention'></div>")
-    $('#intu-side-menu').append("\
-        <div id='intu-filter-components' class='intu-container'><strong>Filter By Component:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a> </div> \
-        <div id='intu-filter-users' class='intu-container'><strong>Filter By Assignee:</strong> <a href='javascript:pluginClearFilter()' style='color:red'>Clear Filter</a> </div> \
-        <div id='intu-status'>  \
-            <div id='num-of-issues'><strong># of Issues : </strong><span id='intu-status-issues'></span></div>  \
-            <div id='num-of-points'><strong># of Story Pts : </strong><span id='intu-status-points'></span></div>  \
-        </div>  \
-        "
-    );
+    if(!ck1) $('#maxSpace').addClass('disabledMenu').hide();
+    if(!ck2) $('#cardsWatching').addClass('disabledMenu').hide();
+    if(!ck3) $('#sortLabel').addClass('disabledMenu').hide();
+    if(!ck4) $('#sortAssignee').addClass('disabledMenu').hide();
+    if(!ck5) $('#componentFilter').addClass('disabledMenu').hide();
+    if(!ck6) $('#userFilter').addClass('disabledMenu').hide();
+    if(!ck7) $('#priorityFilter').addClass('disabledMenu').hide();
+    if(!ck8) $('#fixversionFilter').addClass('disabledMenu').hide();
+    if(!ck9) $('#issuetypeFilter').addClass('disabledMenu').hide();
+    if(!ck10) $('#issueStatus').addClass('disabledMenu').hide();
 
-//    <div id='intu-help'>  \
-//        <strong>For configurable settings, go to the <a href='" + chrome.extension.getURL(optionsPage) + "' target='_blank'>options</a> page. \
-//        </div> \
 
     $('.masterTooltip').hover(function(){
         var title = $(this).attr('title');
@@ -347,10 +402,23 @@ function setIssueStatus(statusCounts, statusStoryPoints) {
 function addAttributesTo(elIssue, fields, issueIsPR){
     var storyPoint = 0;
     if (fields[storyPointsField]) storyPoint = fields[[storyPointsField]];
-//    if (fields.customfield_11703) storyPoint = fields.customfield_11703;
 
     var displayName = 'Unassigned';
     if (fields.assignee) displayName = fields.assignee.displayName;
+
+    var priority = '';
+    if (fields.priority) priority = fields.priority.name;
+
+    var issuetype = '';
+    if (fields.issuetype) issuetype = fields.issuetype.name;
+
+    var fixVersions = '';
+    if (fields.fixVersions) {
+        for (var i=0; i < fields.fixVersions.length; i++){
+            var fixVersionName = fields.fixVersions[i].name;
+            fixVersions += (fixVersionName + ",");
+        }
+    }
 
     var label = "";
     if (issueIsPR) label = "Pull Request";
@@ -377,9 +445,21 @@ function addAttributesTo(elIssue, fields, issueIsPR){
     elIssue.attr('_storyPoint', storyPoint);
     elIssue.attr('_label', label);
     elIssue.attr('_watchers', watchers);
+    elIssue.attr('_priority', priority);
+    elIssue.attr('_fixVersion', fixVersions);
+    elIssue.attr('_issuetype', issuetype);
 
     // Add name filter
     addUserFilter(displayName);
+
+    // Add priority filter
+    addPriorityFilter(priority);
+
+    //Add fix version filter
+    addFixVersionFilter(fixVersions);
+
+    //Add the issuetype filter
+    addIssueTypeFilter(issuetype);
 
     if(fields.components){
         for(var i=0; i<fields.components.length; i++){
@@ -400,7 +480,7 @@ function addAttributesTo(elIssue, fields, issueIsPR){
                 currentComponent = elIssue.attr('_componentName')
             elIssue.attr('_componentName',  currentComponent + "|" + componentName);
 
-            $('#componentFilter').css('display', 'block');
+            if(ck5) $('#componentFilter').css('display', 'block');
         }
     }
 }
@@ -418,8 +498,6 @@ function createLabelFrom(labels, issueIsPR, elIssue){
 
     if (displayLabel.length > 0) {
         elIssue.css('background-color', 'rgba('+ hexToRgb(shadeColor(stringToColour(displayLabel), 20)) + ',0.35)');
-//        elIssue.css('background-color', 'rgba('+ hexToRgb(stringToColour(displayLabel)) + ',0.2)');
-        $('#sortLabel').css('display', 'block');
     }
 
     if(issueIsPR){
@@ -560,11 +638,11 @@ function addHovercardTo(elIssue, fields, issueKey){
     }
 
     // Acceptance Criteria
-    if (fields.customfield_13624 && fields.customfield_13624.length > 0) {
-        var accpCount = $('<p>' + fields.customfield_13624 + '</p>').find('li').length;
-        if(accpCount == 0) accpCount = 1;
-        addLabelTo(elIssue, 'AC ' + accpCount, 'bottom-top-left');
-    }
+//    if (fields.customfield_13624 && fields.customfield_13624.length > 0) {
+//        var accpCount = $('<p>' + fields.customfield_13624 + '</p>').find('li').length;
+//        if(accpCount == 0) accpCount = 1;
+//        addLabelTo(elIssue, 'AC ' + accpCount, 'bottom-top-left');
+//    }
 
     // Status count
     if(statusCounts[fields.status.name] === undefined) statusCounts[fields.status.name] = 0;
@@ -573,6 +651,7 @@ function addHovercardTo(elIssue, fields, issueKey){
     // StoryPoint
     if(statusStoryPoints[fields.status.name] === undefined) statusStoryPoints[fields.status.name] = 0;
     if(fields[storyPointsField]) statusStoryPoints[fields.status.name] = statusStoryPoints[fields.status.name] + fields[storyPointsField];
+
 
     // This is on Plan view. Add summary
     var summaryHtml = '';
@@ -586,7 +665,7 @@ function addHovercardTo(elIssue, fields, issueKey){
     }
 
     // Attach hovercard event to each jira issue element
-    elIssue.find('.ghx-issue-fields:first, .ghx-key').first().hovercard({
+    elIssue.find('.ghx-key').first().hovercard({ // Removed ".ghx-issue-fields:first" because it is too big.
         detailsHTML:
             "<h3 style='float:left;padding-top:0px;'>Status</h3>" +
                 "<div style='float:right'><b>Created</b>: " + daysDiff(new Date(fields.created), new Date()) + ' days ago ' + " <b>Updated:</b> "+ daysDiff(new Date(fields.updated), new Date()) + ' days ago' + /*(new Date(fields.updated)).toLocaleDateString()*/
@@ -626,7 +705,12 @@ $.fn.hovercard = function(options) {
 
             // Left - different cases for plan view and work view
             if ($(this).hasClass('ghx-key')){
-                left = offset.left + $(this).width() + 10;
+                if ((window.innerWidth - (offset.left + $(this).width() + 50)) < 300) {
+                    left = offset.left - 340;
+                }
+                else {
+                    left = offset.left + $(this).width() + 50;
+                }
             }
             else {
                 if( (offset.left + $(this).width() + 45 + width) > window.innerWidth){
@@ -670,4 +754,40 @@ $.fn.hovercard = function(options) {
             }
         }
     );
+}
+
+function getLocalStorage(){
+    chrome.runtime.sendMessage({method: "getLocalStorage", key: "settings"}, function(response) {
+        localStorageSet = true;
+        hasGithub = jiraGithub.initVariables(response);
+        watchersNames = response.watchersNames;
+        hoverDescription = response.hoverDescription != 'false';
+        showLastComment = response.lastComment != 'false';
+        relatedCards = response.relatedCards != 'false';
+        fixVersion = response.fixVersion != 'false';
+
+        ck1 = response.ck1 != 'false';
+        ck2 = response.ck2 != 'false';
+        ck3 = response.ck3 != 'false';
+        ck4 = response.ck4 != 'false';
+        ck5 = response.ck5 != 'false';
+        ck6 = response.ck6 != 'false';
+        ck7 = response.ck7 != 'false';
+        ck8 = response.ck8 != 'false';
+        ck9 = response.ck9 != 'false';
+        ck10 = response.ck10 != 'false';
+    });
+}
+
+function appendScriptsToPage(){
+    // Inject script.js to the document
+    var s = document.createElement('script');
+    s.src = chrome.extension.getURL('script.js');
+    (document.head||document.documentElement).appendChild(s);
+    s.onload = function() {
+        s.parentNode.removeChild(s);
+    };
+
+    $('body').append("<div class='hovercard'></div>");
+    $('body').append("<div id='intu-menu'></div>");
 }

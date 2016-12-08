@@ -90,15 +90,75 @@ function resetIssue(elIssue){
     elIssue.find('.github-icon, .intu-watchers, .open-icon').remove();
 }
 
+function incrementCount(element){
+    var str = element.text();
+    var rest = str.substring(0, str.lastIndexOf("(") + 1);
+    var last = str.substring(str.lastIndexOf("(") + 1, str.length);
+    var count = parseInt(last.substring(0, last.lastIndexOf(")")));
+    count++;
+    element.text(rest + count + ')');
+}
+
 // HTML stuffs
 function addUserFilter(displayName){
-    if($(".intu-filter-user[_displayName='" + displayName.replace(/'/g, "\\'") + "']").length == 0){
+    var elements = $(".intu-filter-user[_displayName='" + displayName.replace(/'/g, "\\'") + "']");
+    if(elements.length == 0){
         var linkUser = $('<a />').attr({
             class: (displayName == 'Unassigned'? 'intu-filter-user intu-filter-new-user' : 'intu-filter-user'),
             href: "javascript:pluginFilterUser('" + displayName + "')",
             _displayName: displayName.replace(/'/g, "\\'")
-        }).text(displayName);
+        }).text(displayName + ' (1)');
         $('#intu-filter-users').append(linkUser);
+    }
+    else {
+        incrementCount(elements.eq(0));
+    }
+}
+
+function addPriorityFilter(name){
+    var elements = $(".intu-filter-priority[_displayName='" + name + "']");
+    if(elements.length == 0){
+        var link = $('<a />').attr({
+            class: 'intu-filter-priority',
+            href: "javascript:pluginFilterPriority('" + name + "')",
+            _displayName: name
+        }).text(name + ' (1)');
+        $('#intu-filter-priorities').append(link);
+    }
+    else {
+        incrementCount(elements.eq(0));
+    }
+}
+
+function addFixVersionFilter(name){
+    if(name == '') return;
+
+    var elements = $(".intu-filter-fixversion[_displayName='" + name + "']");
+    if(elements.length == 0){
+        var link = $('<a />').attr({
+            class: 'intu-filter-fixversion',
+            href: "javascript:pluginFilterFixVersion('" + name + "')",
+            _displayName: name
+        }).text(name + ' (1)');
+        $('#intu-filter-fixversion').append(link);
+    }
+    else {
+        incrementCount(elements.eq(0));
+    }
+}
+
+function addIssueTypeFilter(name){
+    var elements = $(".intu-filter-issuetype[_displayName='" + name + "']");
+    if(elements.length == 0){
+        var link = $('<a />').attr({
+            class: 'intu-filter-issuetype',
+            href: "javascript:pluginFilterIssuetype('" + name + "')",
+            _displayName: name
+        }).text(name + ' (1)');
+        $('#intu-filter-issuetype').append(link);
+    }
+    else {
+        incrementCount(elements.eq(0));
     }
 }
 
@@ -154,6 +214,8 @@ function mentionHtml(issueKey, lastComment, summary){
         var nextCount = parseInt(mCount) + 1;
         $('#pluginMentionCount').text(nextCount)
     }
+
+    $('#intu-mention').append("<a href='javascript:pluginClose();' class='close-button'>Close</a>");
 }
 
 function WorkStatus(name, columnId){
