@@ -243,14 +243,16 @@ function updateJiraBoard() {
 
                 localStorage["JIS" + data.id] = data.filterConfig.id;
                 localStorage["JIS_ColumnStatuses" + rapidViewID] = workColumnStatusesToString();
+                localStorage["JIS_kanban" + rapidViewID] = !data.isSprintSupportEnabled;
 
                 callJira(sprintID, data.filterConfig.id, !data.isSprintSupportEnabled);
             });
         }
         else {
             var filterId = localStorage["JIS" + rapidViewID];
+            var isKanban = localStorage["JIS_kanban" + rapidViewID]
             workColumnStatusesStringToHash(localStorage["JIS_ColumnStatuses" + rapidViewID]);
-            callJira(sprintID, filterId);
+            callJira(sprintID, filterId, isKanban);
         }
     }
 }
